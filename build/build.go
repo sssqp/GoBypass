@@ -15,6 +15,7 @@ func Build(code string, ldflags bool, hide bool, race bool) {
 		return
 	}
 	cmd := []string{
+		"go",
 		"build",
 		"-o",
 		"output.exe",
@@ -30,6 +31,7 @@ func Garble(code string, ldflags bool, hide bool, race bool) {
 		return
 	}
 	cmd := []string{
+		"go",
 		"build",
 		"-o",
 		"output.exe",
@@ -40,6 +42,7 @@ func Garble(code string, ldflags bool, hide bool, race bool) {
 
 func advanceBuild(code string, ldflags bool, hide bool, race bool) {
 	cmd := []string{
+		"go",
 		"build",
 		"-o",
 		"output.exe",
@@ -48,24 +51,25 @@ func advanceBuild(code string, ldflags bool, hide bool, race bool) {
 		"output/main.go",
 	}
 	if ldflags && hide {
-		cmd[4] = "-s -w -H windowsgui"
+		cmd[5] = "-s -w -H windowsgui"
 	}
 	if ldflags && !hide {
-		cmd[4] = "-s -w"
+		cmd[5] = "-s -w"
 	}
 	if !ldflags && hide {
-		cmd[4] = "-H windowsgui"
+		cmd[5] = "-H windowsgui"
 	}
 	if race {
-		cmd[4] = "-s -w"
+		cmd[5] = "-s -w"
 		cmd = append(cmd, "output/main.go")
-		cmd[5] = "-race"
+		cmd[6] = "-race"
 	}
 	privateBuild(code, cmd)
 }
 
 func advanceGarble(code string, ldflags bool, hide bool, race bool) {
 	cmd := []string{
+		"go",
 		"build",
 		"-o",
 		"output.exe",
@@ -74,13 +78,13 @@ func advanceGarble(code string, ldflags bool, hide bool, race bool) {
 		"output/main.go",
 	}
 	if ldflags && hide {
-		cmd[4] = "-s -w -H windowsgui"
+		cmd[5] = "-s -w -H windowsgui"
 	}
 	if ldflags && !hide {
-		cmd[4] = "-s -w"
+		cmd[5] = "-s -w"
 	}
 	if !ldflags && hide {
-		cmd[4] = "-H windowsgui"
+		cmd[5] = "-H windowsgui"
 	}
 	if race {
 		log.Error("can not use race in garble")
@@ -110,8 +114,25 @@ func privateBuild(code string, command []string) {
 	newPath := filepath.Join(".", "output")
 	_ = os.MkdirAll(newPath, os.ModePerm)
 	_ = ioutil.WriteFile("output/main.go", []byte(code), 0777)
-	cmd := exec.Command("go", command...)
-	err := cmd.Run()
+	cmdPart := checkOS()
+	for i, s := range command {
+		if i == 5 {
+			cmdPart += "='" + s + "'"
+			continue
+		}
+		cmdPart += " "
+		cmdPart += s
+	}
+	
+	var err error
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/C" , cmdPart)
+		_ , err = cmd.Output()
+	}else {
+		cmd := exec.Command("sh", "-c" , cmdPart)
+		_ , err = cmd.Output()
+	}
+
 	if err == nil {
 		log.Info("build success")
 		log.Info("file: output.exe")
@@ -119,4 +140,13 @@ func privateBuild(code string, command []string) {
 		log.Error("error")
 	}
 	_ = os.RemoveAll(newPath)
+}
+
+func checkOS() string {
+	osName := runtime.GOOS
+	if osName == "windows"{
+		return ""
+	}else {
+		return "env CGO_ENABLED=0 GOOS=windows GOARCH=amd64"
+	}
 }
