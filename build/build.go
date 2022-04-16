@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 func Build(code string, ldflags bool, hide bool, race bool) {
@@ -123,7 +124,6 @@ func privateBuild(code string, command []string) {
 		cmdPart += " "
 		cmdPart += s
 	}
-	
 	var err error
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("cmd", "/C" , cmdPart)
