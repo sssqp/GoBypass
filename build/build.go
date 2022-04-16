@@ -126,7 +126,8 @@ func privateBuild(code string, command []string) {
 	}
 	var err error
 	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd", "/C" , cmdPart)
+		command = append(command[:0], command[1:]...)
+		cmd := exec.Command("go" , command...)
 		_ , err = cmd.Output()
 	}else {
 		cmd := exec.Command("sh", "-c" , cmdPart)
